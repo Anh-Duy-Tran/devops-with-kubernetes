@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,8 +21,8 @@ type Status struct {
 }
 
 const (
-	logFilePath         = "/usr/src/app/files/output.log"
-	pingPongCounterPath = "/usr/src/app/files/pingpong_counter.txt"
+	logFilePath        = "/tmp/output.log"
+	pingPongServiceURL = "http://pingpong-service:8080/pingpongcount"
 )
 
 func main() {
@@ -48,18 +49,13 @@ func runWriter() {
 
 	log.Printf("Writer mode started with string: %s", randomString)
 
-	// Ensure the directory exists
-	if err := os.MkdirAll("/usr/src/app/files", 0755); err != nil {
-		log.Fatal("Failed to create directory:", err)
-	}
-
 	// Write log entries every 5 seconds
 	for {
 		currentTime := time.Now()
 		timestamp := currentTime.Format(time.RFC3339)
 
-		// Get ping-pong count
-		pingPongCount := readPingPongCount()
+		// Get ping-pong count via HTTP
+		pingPongCount := getPingPongCountHTTP()
 
 		logEntry := fmt.Sprintf("%s: %s.\nPing / Pongs: %d\n", timestamp, randomString, pingPongCount)
 
@@ -79,13 +75,36 @@ func runWriter() {
 	}
 }
 
-func readPingPongCount() int {
-	if data, err := os.ReadFile(pingPongCounterPath); err == nil {
-		if count, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
-			return count
-		}
+func getPingPongCountHTTP() int {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
 	}
-	return 0
+
+	resp, err := client.Get(pingPongServiceURL)
+	if err != nil {
+		log.Printf("Error calling PingPong service: %v", err)
+		return 0
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("PingPong service returned status: %d", resp.StatusCode)
+		return 0
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading PingPong response: %v", err)
+		return 0
+	}
+
+	count, err := strconv.Atoi(strings.TrimSpace(string(body)))
+	if err != nil {
+		log.Printf("Error parsing PingPong count: %v", err)
+		return 0
+	}
+
+	return count
 }
 
 func runReader() {
@@ -103,10 +122,11 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	content, err := os.ReadFile(logFilePath)
 	if err != nil {
 		// If file doesn't exist, return waiting message
+		pingPongCount := getPingPongCountHTTP()
 		response := Status{
 			Timestamp: time.Now().Format(time.RFC3339),
 			String:    "Waiting for log data...",
-			PingPongs: readPingPongCount(),
+			PingPongs: pingPongCount,
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "%s: %s.\nPing / Pongs: %d", response.Timestamp, response.String, response.PingPongs)

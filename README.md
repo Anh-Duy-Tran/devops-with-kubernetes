@@ -17,3 +17,4 @@
 - [1.11.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.11/LogOutput/manifests/deployment.yaml)
 - [1.12.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.12/TheProject)
 - [1.13.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.13/TheProject)
+- [2.1.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.1/LogOutput)
