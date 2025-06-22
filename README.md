@@ -11,3 +11,4 @@
 - [1.5.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.5/TheProject)
 - [1.6.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.6/TheProject/manifests/service.yaml)
 - [1.7.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.7/LogOutput)
+- [1.8.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.8/TheProject/manifests/ingress.yaml)
