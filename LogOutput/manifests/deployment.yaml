@@ -14,14 +14,35 @@ spec:
       labels:
         app: log-output-app
     spec:
+      volumes:
+        - name: shared-logs
+          emptyDir: {}
       containers:
-        - name: log-output
+        - name: log-writer
           image: log-output:latest
           imagePullPolicy: Never
+          command: ["/log-output", "writer"]
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
           resources:
             requests:
               memory: "32Mi"
-              cpu: "50m"
+              cpu: "25m"
             limits:
               memory: "64Mi"
-              cpu: "100m"
+              cpu: "50m"
+        - name: log-reader
+          image: log-output:latest
+          imagePullPolicy: Never
+          command: ["/log-output", "reader"]
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"

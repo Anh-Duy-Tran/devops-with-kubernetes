@@ -1,40 +1,95 @@
 # Log Output Application
 
-A simple Go application that generates timestamped log entries with a unique UUID every 5 seconds. Perfect for testing logging, monitoring, and Kubernetes deployments.
+This application demonstrates the use of emptyDir volumes in Kubernetes to share data between containers within the same pod.
 
-## Quick Start
+## Architecture
 
-### Prerequisites
+The application consists of two containers running in a single pod:
 
-- Docker
-- k3d cluster
-- kubectl configured to connect to your cluster
+1. **Log Writer Container**: Generates a random string on startup and writes log entries with timestamp every 5 seconds to a shared file
+2. **Log Reader Container**: Reads the log file and serves the content via HTTP GET endpoint
 
-### Deploy to Kubernetes
+Both containers share an emptyDir volume mounted at `/usr/src/app/files/` to exchange log data.
 
-1. Make the build script executable (if not already):
+## Features
 
-   ```bash
-   chmod +x build-and-deploy.sh
-   ```
+- Single Go binary that can run in two modes based on command-line arguments
+- **Writer mode**: `./log-output writer` - Generates logs to a file
+- **Reader mode**: `./log-output reader` - Serves HTTP API to read logs
+- EmptyDir volume for file sharing between containers
+- RESTful API endpoints at `/` and `/status`
 
-2. Run the automated build and deploy script:
+## API Response Format
 
-   ```bash
-   ./build-and-deploy.sh
-   ```
+```json
+{
+  "timestamp": "2023-12-07T10:30:45Z",
+  "string": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
 
-3. View the logs:
-   ```bash
-   kubectl logs -l app=log-output-app -f
-   ```
+## Deployment
 
-### What the script does:
+### Build and Deploy
 
-- Builds the Docker image from the Go source code
-- Imports the image into your k3d cluster
-- Deploys the application with Kubernetes manifests
-- Shows deployment status
+```bash
+# Build Docker image and deploy to k3d cluster
+./build-and-deploy.sh
+```
+
+### Manual Deployment
+
+```bash
+# Build Docker image
+docker build -t log-output:latest .
+
+# Import to k3d cluster
+k3d image import log-output:latest
+
+# Apply Kubernetes manifests
+kubectl apply -f manifests/
+```
+
+## Volume Behavior
+
+The emptyDir volume has the following characteristics:
+
+- **Lifecycle**: Tied to the pod lifecycle - data persists only while the pod is running
+- **Scope**: Shared between all containers in the pod
+- **Persistence**: Data is lost when the pod is deleted or moved to another node
+- **Storage**: Uses node's local storage (disk or memory)
+
+## Accessing the Application
+
+Once deployed, the application is accessible via:
+
+- **Direct Service**: `kubectl port-forward service/log-output-service 8080:8080`
+- **Ingress**: If ingress controller is configured, access via the configured host/path
+
+## Monitoring
+
+```bash
+# Check pod status
+kubectl get pods -l app=log-output-app
+
+# View logs from both containers
+kubectl logs -l app=log-output-app -c log-writer -f
+kubectl logs -l app=log-output-app -c log-reader -f
+
+# View all logs from the pod
+kubectl logs -l app=log-output-app --all-containers=true -f
+```
+
+## Testing
+
+```bash
+# Test the API endpoint
+curl http://localhost:8080/status
+
+# Test via port-forward
+kubectl port-forward service/log-output-service 8080:8080
+curl http://localhost:8080/
+```
 
 ## Screenshot
 
