@@ -2,6 +2,8 @@
 
 A simple web server that outputs "Server started in port NNNN" when started and serves as the foundation for a todo application. Features configurable port via environment variable and health check endpoint.
 
+![Todo App Screenshot](./screenshots/1.5.png)
+
 ## Quick Start
 
 ### Prerequisites

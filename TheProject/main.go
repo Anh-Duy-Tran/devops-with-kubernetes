@@ -2,12 +2,52 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 )
 
+// PageData holds the data to be passed to the HTML template
+type PageData struct {
+	UserAgent string
+	Method    string
+	URL       string
+}
+
+// Global variable to hold the parsed template
+var indexTemplate *template.Template
+
+func init() {
+	// Parse the HTML template at startup
+	var err error
+	indexTemplate, err = template.ParseFiles("index.html")
+	if err != nil {
+		fmt.Printf("Error loading template: %s\n", err)
+		os.Exit(1)
+	}
+}
+
 func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Hello from Todo App!\n")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	userAgent := req.Header.Get("User-Agent")
+	if userAgent == "" {
+		userAgent = "Unknown"
+	}
+
+	// Prepare data for template
+	data := PageData{
+		UserAgent: userAgent,
+		Method:    req.Method,
+		URL:       req.URL.String(),
+	}
+
+	// Execute template with data
+	err := indexTemplate.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+		fmt.Printf("Template execution error: %s\n", err)
+	}
 }
 
 func headers(w http.ResponseWriter, req *http.Request) {

@@ -18,6 +18,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /todo-app
 FROM scratch
 
 COPY --from=builder /todo-app /
+# Copy the HTML template file
+COPY index.html /
 
 # Expose port (default 8080, but configurable via PORT env var)
 EXPOSE 8080
