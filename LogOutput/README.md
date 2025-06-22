@@ -38,6 +38,14 @@ A simple Go application that generates timestamped log entries with a unique UUI
 
 ## Screenshot
 
-![Application Output](./output_screenshot.png)
+### 1.7
+
+![LogOutput App 1.7 Screenshot](./screenshots/1.7.png)
+
+Add an endpoint to request the current status (timestamp and the random string) and an Ingress so that you can access it with a browser.
+
+### 1.1
+
+![Application Output](./screenshots/1.1.png)
 
 _Example of the log output application running in Kubernetes, showing timestamped entries with UUID generated every 5 seconds._

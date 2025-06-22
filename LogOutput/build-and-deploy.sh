@@ -14,7 +14,7 @@ echo "Importing image into k3d cluster..."
 k3d image import log-output:latest
 
 echo "Applying Kubernetes manifests..."
-kubectl apply -f manifests/deployment.yaml
+kubectl apply -f manifests
 
 echo "Checking deployment status..."
 kubectl get deployments

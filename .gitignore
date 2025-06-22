@@ -30,3 +30,4 @@ go.work.sum
 !*.*
 material-example
 !Dockerfile
+.DS_Store
