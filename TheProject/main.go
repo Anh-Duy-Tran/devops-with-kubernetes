@@ -17,6 +17,14 @@ const (
 	cacheDuration  = 10 * time.Minute
 )
 
+// Todo represents a single todo item
+type Todo struct {
+	ID       int    `json:"id"`
+	Text     string `json:"text"`
+	Created  string `json:"created"`
+	Priority string `json:"priority"`
+}
+
 // PageData holds the data to be passed to the HTML template
 type PageData struct {
 	UserAgent string
@@ -24,6 +32,7 @@ type PageData struct {
 	URL       string
 	ImagePath string
 	ImageAge  string
+	Todos     []Todo
 }
 
 // Global variable to hold the parsed template
@@ -131,6 +140,47 @@ func getImageAge() string {
 	}
 }
 
+func getHardcodedTodos() []Todo {
+	return []Todo{
+		{
+			ID:       1,
+			Text:     "Set up Kubernetes cluster with persistent volumes",
+			Created:  "2 hours ago",
+			Priority: "high",
+		},
+		{
+			ID:       2,
+			Text:     "Implement image caching functionality",
+			Created:  "1 hour ago",
+			Priority: "medium",
+		},
+		{
+			ID:       3,
+			Text:     "Add todo list functionality to the app",
+			Created:  "30 minutes ago",
+			Priority: "high",
+		},
+		{
+			ID:       4,
+			Text:     "Write comprehensive documentation",
+			Created:  "15 minutes ago",
+			Priority: "low",
+		},
+		{
+			ID:       5,
+			Text:     "Test container restart persistence",
+			Created:  "10 minutes ago",
+			Priority: "medium",
+		},
+		{
+			ID:       6,
+			Text:     "Deploy to production environment",
+			Created:  "5 minutes ago",
+			Priority: "low",
+		},
+	}
+}
+
 func hello(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -146,6 +196,7 @@ func hello(w http.ResponseWriter, req *http.Request) {
 		URL:       req.URL.String(),
 		ImagePath: "/image",
 		ImageAge:  getImageAge(),
+		Todos:     getHardcodedTodos(),
 	}
 
 	// Execute template with data

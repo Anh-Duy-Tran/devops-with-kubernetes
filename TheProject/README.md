@@ -4,6 +4,10 @@ A simple web server that displays random images from Lorem Picsum, with intellig
 
 ## Screenshots
 
+### 1.13
+
+![Todo App Screenshot](./screenshots/1.13.png)
+
 ### 1.12
 
 ![Todo App Screenshot](./screenshots/1.12.png)

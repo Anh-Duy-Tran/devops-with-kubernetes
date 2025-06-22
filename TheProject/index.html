@@ -1,105 +1,335 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hello World - Todo App with Hourly Images</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .image-section {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-        }
-        .random-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            margin: 15px 0;
-        }
-        .image-info {
-            font-size: 14px;
-            color: #6c757d;
-            margin-top: 10px;
-        }
-        .info {
-            background-color: #e8f4fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            border-left: 4px solid #2196F3;
-        }
-        .user-agent {
-            word-break: break-all;
-            font-family: monospace;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 3px;
-            margin-top: 10px;
-        }
-        .shutdown-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #dc3545;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        .shutdown-link:hover {
-            background-color: #c82333;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: 50px auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .image-section {
+        margin: 30px 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+      }
+      .random-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        margin: 15px 0;
+      }
+      .image-info {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 10px;
+      }
+      .info {
+        background-color: #e8f4fd;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+        border-left: 4px solid #2196f3;
+      }
+      .user-agent {
+        word-break: break-all;
+        font-family: monospace;
+        background-color: #f0f0f0;
+        padding: 10px;
+        border-radius: 3px;
+        margin-top: 10px;
+      }
+      .shutdown-link {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #dc3545;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+      .shutdown-link:hover {
+        background-color: #c82333;
+      }
+      .todo-section {
+        margin: 30px 0;
+        text-align: left;
+      }
+      .todo-input-container {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        margin-bottom: 20px;
+      }
+      .todo-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 16px;
+        resize: none;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+      }
+      .todo-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+      }
+      .input-info {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6c757d;
+      }
+      .char-count {
+        font-weight: bold;
+      }
+      .char-count.warning {
+        color: #fd7e14;
+      }
+      .char-count.danger {
+        color: #dc3545;
+      }
+      .send-button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background-color 0.2s;
+      }
+      .send-button:hover:not(:disabled) {
+        background-color: #218838;
+      }
+      .send-button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+      .todo-list {
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+      }
+      .todo-item {
+        padding: 16px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .todo-item:last-child {
+        border-bottom: none;
+      }
+      .todo-content {
+        flex: 1;
+      }
+      .todo-text {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      .todo-meta {
+        font-size: 12px;
+        color: #6c757d;
+      }
+      .todo-priority {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-left: 12px;
+      }
+      .priority-high {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .priority-medium {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      .priority-low {
+        background-color: #d1ecf1;
+        color: #0c5460;
+      }
+      .todo-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>🌟 Hello World! 🌟</h1>
-        <p>Welcome to the Todo App with Hourly Images running in Kubernetes!</p>
-        
-        <div class="image-section">
-            <h3>📸 Random Image of the Hour</h3>
-            <p>This image changes every 10 minutes and is cached in a persistent volume!</p>
-            <img src="{{.ImagePath}}" alt="Random image from Lorem Picsum" class="random-image" />
-            <div class="image-info">
-                <strong>Image cached:</strong> {{.ImageAge}}
-                <br>
-                <em>Images are refreshed every 10 minutes and persist across container restarts</em>
-            </div>
-        </div>
-        
-        <div class="info">
-            <h3>Request Information:</h3>
-            <p><strong>Your User Agent:</strong></p>
-            <div class="user-agent">{{.UserAgent}}</div>
-            <p><strong>Request Method:</strong> {{.Method}}</p>
-            <p><strong>Request URL:</strong> {{.URL}}</p>
-        </div>
-        
-        <a href="/shutdown" class="shutdown-link">🔧 Test Container Restart (Shutdown)</a>
-        <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
-            ↑ Click this to test that images persist across container restarts
+      <h1>🌟 Hello World! 🌟</h1>
+      <p>Welcome to the Todo App with Hourly Images running in Kubernetes!</p>
+
+      <div class="image-section">
+        <h3>📸 Random Image of the Hour</h3>
+        <p>
+          This image changes every 10 minutes and is cached in a persistent
+          volume!
         </p>
+        <img
+          src="{{.ImagePath}}"
+          alt="Random image from Lorem Picsum"
+          class="random-image"
+        />
+        <div class="image-info">
+          <strong>Image cached:</strong> {{.ImageAge}}
+          <br />
+          <em
+            >Images are refreshed every 10 minutes and persist across container
+            restarts</em
+          >
+        </div>
+      </div>
+
+      <div class="todo-section">
+        <div class="todo-header">
+          <h2>📝 Todo List</h2>
+          <p>Add your tasks below (max 140 characters each)</p>
+        </div>
+
+        <div class="todo-input-container">
+          <textarea
+            id="todoInput"
+            class="todo-input"
+            placeholder="What needs to be done?"
+            maxlength="140"
+            rows="3"
+            oninput="updateCharCount()"
+          ></textarea>
+          <div class="input-info">
+            <span>Press Enter to add or click Send</span>
+            <span class="char-count" id="charCount">0/140</span>
+          </div>
+          <button
+            class="send-button"
+            id="sendButton"
+            onclick="handleSendTodo()"
+          >
+            📤 Send Todo
+          </button>
+        </div>
+
+        <div class="todo-list">
+          {{range .Todos}}
+          <div class="todo-item">
+            <div class="todo-content">
+              <p class="todo-text">{{.Text}}</p>
+              <div class="todo-meta">Added {{.Created}} • ID: {{.ID}}</div>
+            </div>
+            <span class="todo-priority priority-{{.Priority}}"
+              >{{.Priority}}</span
+            >
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="info">
+        <h3>Request Information:</h3>
+        <p><strong>Your User Agent:</strong></p>
+        <div class="user-agent">{{.UserAgent}}</div>
+        <p><strong>Request Method:</strong> {{.Method}}</p>
+        <p><strong>Request URL:</strong> {{.URL}}</p>
+      </div>
+
+      <a href="/shutdown" class="shutdown-link"
+        >🔧 Test Container Restart (Shutdown)</a
+      >
+      <p style="font-size: 12px; color: #6c757d; margin-top: 10px">
+        ↑ Click this to test that images persist across container restarts
+      </p>
     </div>
-</body>
-</html> 
+
+    <script>
+      function updateCharCount() {
+        const input = document.getElementById("todoInput");
+        const charCount = document.getElementById("charCount");
+        const sendButton = document.getElementById("sendButton");
+        const currentLength = input.value.length;
+
+        charCount.textContent = currentLength + "/140";
+
+        // Update character count styling
+        charCount.className = "char-count";
+        if (currentLength > 120) {
+          charCount.className += " danger";
+        } else if (currentLength > 100) {
+          charCount.className += " warning";
+        }
+
+        // Enable/disable send button based on content
+        sendButton.disabled = currentLength === 0 || currentLength > 140;
+      }
+
+      function handleSendTodo() {
+        const input = document.getElementById("todoInput");
+        const todoText = input.value.trim();
+
+        if (todoText.length === 0) {
+          alert("Please enter a todo item!");
+          return;
+        }
+
+        if (todoText.length > 140) {
+          alert("Todo is too long! Maximum 140 characters allowed.");
+          return;
+        }
+
+        // For now, just show an alert (functionality will be added later)
+        alert(
+          'Todo ready to send: "' +
+            todoText +
+            '"\n\n(Actual sending functionality will be implemented in the next step!)',
+        );
+
+        // Clear the input
+        input.value = "";
+        updateCharCount();
+      }
+
+      // Handle Enter key press
+      document
+        .getElementById("todoInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendTodo();
+          }
+        });
+
+      // Initialize character count on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        updateCharCount();
+      });
+    </script>
+  </body>
+</html>
+
