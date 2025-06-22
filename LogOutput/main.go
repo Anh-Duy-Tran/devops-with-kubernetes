@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,9 +16,13 @@ import (
 type Status struct {
 	Timestamp string `json:"timestamp"`
 	String    string `json:"string"`
+	PingPongs int    `json:"ping_pongs,omitempty"`
 }
 
-const logFilePath = "/usr/src/app/files/output.log"
+const (
+	logFilePath         = "/usr/src/app/files/output.log"
+	pingPongCounterPath = "/usr/src/app/files/pingpong_counter.txt"
+)
 
 func main() {
 	if len(os.Args) < 2 {
@@ -53,10 +57,14 @@ func runWriter() {
 	for {
 		currentTime := time.Now()
 		timestamp := currentTime.Format(time.RFC3339)
-		logEntry := fmt.Sprintf("[%s]: %s\n", timestamp, randomString)
+
+		// Get ping-pong count
+		pingPongCount := readPingPongCount()
+
+		logEntry := fmt.Sprintf("%s: %s.\nPing / Pongs: %d\n", timestamp, randomString, pingPongCount)
 
 		// Append to file
-		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			log.Printf("Error opening file: %v", err)
 		} else {
@@ -69,6 +77,15 @@ func runWriter() {
 
 		time.Sleep(5 * time.Second)
 	}
+}
+
+func readPingPongCount() int {
+	if data, err := os.ReadFile(pingPongCounterPath); err == nil {
+		if count, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
+			return count
+		}
+	}
+	return 0
 }
 
 func runReader() {
@@ -89,44 +106,14 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		response := Status{
 			Timestamp: time.Now().Format(time.RFC3339),
 			String:    "Waiting for log data...",
+			PingPongs: readPingPongCount(),
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "%s: %s.\nPing / Pongs: %d", response.Timestamp, response.String, response.PingPongs)
 		return
 	}
 
-	// Parse the last line to get the latest entry
-	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
-	if len(lines) == 0 || lines[0] == "" {
-		response := Status{
-			Timestamp: time.Now().Format(time.RFC3339),
-			String:    "No log data available",
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Get the last line and parse it
-	lastLine := lines[len(lines)-1]
-
-	// Extract timestamp and string from the format "[timestamp]: string"
-	parts := strings.SplitN(lastLine, "]: ", 2)
-	var timestamp, randomString string
-
-	if len(parts) == 2 {
-		timestamp = strings.TrimPrefix(parts[0], "[")
-		randomString = parts[1]
-	} else {
-		timestamp = time.Now().Format(time.RFC3339)
-		randomString = lastLine
-	}
-
-	response := Status{
-		Timestamp: timestamp,
-		String:    randomString,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	// Return the file content as-is (it's already in the required format)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(content)
 }

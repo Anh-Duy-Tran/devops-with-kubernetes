@@ -14,3 +14,4 @@
 - [1.8.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.8/TheProject/manifests/ingress.yaml)
 - [1.9.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.9/PingPong)
 - [1.10.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.10/LogOutput)
+- [1.11.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/1.11/LogOutput/manifests/deployment.yaml)

@@ -2,7 +2,7 @@
 
 set -e
 
-echo "Building Docker image for log-output app with emptyDir volume support..."
+echo "Building Docker image for log-output app with persistent volume support..."
 
 # Build the Docker image
 docker build -t log-output:latest .
@@ -26,15 +26,19 @@ kubectl get services
 
 echo ""
 echo "=== Deployment completed! ==="
-echo "The application now runs with two containers:"
-echo "  - log-writer: Generates logs to shared file"
+echo "The application now runs with two containers and persistent volume support:"
+echo "  - log-writer: Generates logs with ping-pong count to shared file"
 echo "  - log-reader: Serves logs via HTTP API"
+echo ""
+echo "⚠️  Note: This deploys with persistent volume configuration."
+echo "   For full persistent volume demo with PingPong integration, use:"
+echo "   ./deploy-persistent.sh"
 echo ""
 echo "Useful commands:"
 echo "  View writer logs: kubectl logs -l app=log-output-app -c log-writer -f"
 echo "  View reader logs: kubectl logs -l app=log-output-app -c log-reader -f"
 echo "  View all logs: kubectl logs -l app=log-output-app --all-containers=true -f"
 echo "  Test API: kubectl port-forward service/log-output-service 8080:8080"
-echo "  Run tests: ./test-emptydir.sh"
+echo "  Run persistence tests: ./test-persistent.sh"
 echo ""
-echo "EmptyDir volume is mounted at /usr/src/app/files/ in both containers"
+echo "Persistent Volume is mounted at /usr/src/app/files/ in both containers"

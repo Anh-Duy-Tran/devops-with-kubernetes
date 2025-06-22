@@ -14,10 +14,17 @@ spec:
       labels:
         app: pingpong-app
     spec:
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data-claim
       containers:
         - name: pingpong
           image: pingpong:latest
           imagePullPolicy: Never
+          volumeMounts:
+            - name: shared-data
+              mountPath: /usr/src/app/files
           resources:
             requests:
               memory: "32Mi"
@@ -25,4 +32,3 @@ spec:
             limits:
               memory: "64Mi"
               cpu: "100m"
-

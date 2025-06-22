@@ -1,94 +1,163 @@
-# Log Output Application
+# Log Output Application with Persistent Volumes
 
-This application demonstrates the use of emptyDir volumes in Kubernetes to share data between containers within the same pod.
+This application demonstrates the use of persistent volumes in Kubernetes to share data between applications across different pods. It integrates with a PingPong application to display shared counter data.
 
 ## Architecture
 
-The application consists of two containers running in a single pod:
+The application consists of:
 
-1. **Log Writer Container**: Generates a random string on startup and writes log entries with timestamp every 5 seconds to a shared file
+### LogOutput Application (Single Pod, Two Containers)
+
+1. **Log Writer Container**: Generates a random string on startup and writes log entries with timestamp and ping-pong count every 5 seconds to a shared file
 2. **Log Reader Container**: Reads the log file and serves the content via HTTP GET endpoint
 
-Both containers share an emptyDir volume mounted at `/usr/src/app/files/` to exchange log data.
+### PingPong Application (Single Pod, Single Container)
+
+1. **PingPong Container**: Handles HTTP requests, increments a counter, and saves the counter to a shared persistent volume
+
+Both applications share a **persistent volume** mounted at `/usr/src/app/files/` to exchange data.
 
 ## Features
 
-- Single Go binary that can run in two modes based on command-line arguments
-- **Writer mode**: `./log-output writer` - Generates logs to a file
-- **Reader mode**: `./log-output reader` - Serves HTTP API to read logs
-- EmptyDir volume for file sharing between containers
-- RESTful API endpoints at `/` and `/status`
+- **Persistent Volume**: Data survives pod restarts and can be shared between applications
+- **Single Go Binary**: LogOutput can run in two modes based on command-line arguments
+  - **Writer mode**: `./log-output writer` - Generates logs with ping-pong count to a file
+  - **Reader mode**: `./log-output reader` - Serves HTTP API to read logs
+- **Cross-Application Data Sharing**: PingPong saves counter, LogOutput reads and displays it
+- **RESTful API**: LogOutput serves data in the required format
 
-## API Response Format
+## Output Format
 
-```json
-{
-  "timestamp": "2023-12-07T10:30:45Z",
-  "string": "550e8400-e29b-41d4-a716-446655440000"
-}
+The LogOutput application serves data in this format:
+
+```
+2020-03-30T12:15:17.705Z: 8523ecb1-c716-4cb6-a044-b9e83bb98e43.
+Ping / Pongs: 3
+```
+
+## Persistent Volume Structure
+
+```
+/tmp/kube/                     # Host directory (k3d node)
+├── pingpong_counter.txt       # PingPong counter file
+└── output.log                 # LogOutput log file
 ```
 
 ## Deployment
 
-### Build and Deploy
+### Quick Deploy (Recommended)
 
 ```bash
-# Build Docker image and deploy to k3d cluster
-./build-and-deploy.sh
+# Deploy both applications with persistent volumes
+./deploy-persistent.sh
 ```
 
 ### Manual Deployment
 
 ```bash
-# Build Docker image
-docker build -t log-output:latest .
+# 1. Create persistent volume directory in k3d node
+docker exec k3d-k3s-default-agent-0 mkdir -p /tmp/kube
 
-# Import to k3d cluster
+# 2. Build and import images
+docker build -t log-output:latest .
 k3d image import log-output:latest
 
-# Apply Kubernetes manifests
+cd ../PingPong
+docker build -t pingpong:latest .
+k3d image import pingpong:latest
+
+# 3. Apply persistent volume resources
+cd ../LogOutput
+kubectl apply -f storage/persistentvolume.yaml
+kubectl apply -f storage/persistentvolumeclaim.yaml
+
+# 4. Deploy applications
+kubectl apply -f ../PingPong/manifests/
 kubectl apply -f manifests/
 ```
 
-## Volume Behavior
+## Persistent Volume Characteristics
 
-The emptyDir volume has the following characteristics:
+- **Type**: Local persistent volume (not suitable for production)
+- **Storage Class**: `shared-storage`
+- **Capacity**: 1Gi
+- **Access Mode**: ReadWriteOnce
+- **Lifecycle**: Independent of pod lifecycle - data persists across pod restarts
+- **Node Affinity**: Bound to specific k3d node (`k3d-k3s-default-agent-0`)
 
-- **Lifecycle**: Tied to the pod lifecycle - data persists only while the pod is running
-- **Scope**: Shared between all containers in the pod
-- **Persistence**: Data is lost when the pod is deleted or moved to another node
-- **Storage**: Uses node's local storage (disk or memory)
+## Testing
 
-## Accessing the Application
+### Comprehensive Test Suite
 
-Once deployed, the application is accessible via:
+```bash
+# Run complete test suite
+./test-persistent.sh
+```
 
-- **Direct Service**: `kubectl port-forward service/log-output-service 8080:8080`
-- **Ingress**: If ingress controller is configured, access via the configured host/path
+### Manual Testing
+
+```bash
+# Test PingPong application
+kubectl port-forward service/pingpong-service 8080:8080
+curl http://localhost:8080/pingpong
+
+# Test LogOutput application
+kubectl port-forward service/log-output-service 8081:8080
+curl http://localhost:8081/
+
+# Verify data persistence
+kubectl delete pod -l app=pingpong-app
+kubectl wait --for=condition=ready pod -l app=pingpong-app
+curl http://localhost:8080/pingpong  # Counter should continue from previous value
+```
 
 ## Monitoring
 
 ```bash
+# Check persistent volume status
+kubectl get pv,pvc
+
 # Check pod status
+kubectl get pods -l app=pingpong-app
 kubectl get pods -l app=log-output-app
 
-# View logs from both containers
+# View application logs
+kubectl logs -l app=pingpong-app -f
 kubectl logs -l app=log-output-app -c log-writer -f
 kubectl logs -l app=log-output-app -c log-reader -f
 
-# View all logs from the pod
-kubectl logs -l app=log-output-app --all-containers=true -f
+# Check shared files
+kubectl exec deployment/pingpong-app -- ls -la /usr/src/app/files/
+kubectl exec deployment/log-output-app -c log-writer -- ls -la /usr/src/app/files/
 ```
 
-## Testing
+## Data Flow
+
+1. **PingPong Application**:
+
+   - Receives HTTP requests
+   - Increments counter
+   - Saves counter to `/usr/src/app/files/pingpong_counter.txt`
+
+2. **LogOutput Writer**:
+
+   - Generates UUID on startup
+   - Every 5 seconds: reads ping-pong counter, writes formatted log entry
+   - Saves to `/usr/src/app/files/output.log`
+
+3. **LogOutput Reader**:
+   - Serves HTTP requests
+   - Reads and returns content from `/usr/src/app/files/output.log`
+
+## Cleanup
 
 ```bash
-# Test the API endpoint
-curl http://localhost:8080/status
+# Remove deployments
+kubectl delete -f manifests/
+kubectl delete -f ../PingPong/manifests/
 
-# Test via port-forward
-kubectl port-forward service/log-output-service 8080:8080
-curl http://localhost:8080/
+# Remove persistent volume resources
+kubectl delete -f storage/
 ```
 
 ## Screenshot
