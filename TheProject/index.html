@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World - Todo App</title>
+    <title>Hello World - Todo App with Hourly Images</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 50px auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -22,6 +22,25 @@
         h1 {
             color: #333;
             margin-bottom: 20px;
+        }
+        .image-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        .random-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin: 15px 0;
+        }
+        .image-info {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 10px;
         }
         .info {
             background-color: #e8f4fd;
@@ -38,12 +57,37 @@
             border-radius: 3px;
             margin-top: 10px;
         }
+        .shutdown-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .shutdown-link:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌟 Hello World! 🌟</h1>
-        <p>Welcome to the Todo App running in Kubernetes!</p>
+        <p>Welcome to the Todo App with Hourly Images running in Kubernetes!</p>
+        
+        <div class="image-section">
+            <h3>📸 Random Image of the Hour</h3>
+            <p>This image changes every 10 minutes and is cached in a persistent volume!</p>
+            <img src="{{.ImagePath}}" alt="Random image from Lorem Picsum" class="random-image" />
+            <div class="image-info">
+                <strong>Image cached:</strong> {{.ImageAge}}
+                <br>
+                <em>Images are refreshed every 10 minutes and persist across container restarts</em>
+            </div>
+        </div>
+        
         <div class="info">
             <h3>Request Information:</h3>
             <p><strong>Your User Agent:</strong></p>
@@ -51,6 +95,11 @@
             <p><strong>Request Method:</strong> {{.Method}}</p>
             <p><strong>Request URL:</strong> {{.URL}}</p>
         </div>
+        
+        <a href="/shutdown" class="shutdown-link">🔧 Test Container Restart (Shutdown)</a>
+        <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
+            ↑ Click this to test that images persist across container restarts
+        </p>
     </div>
 </body>
 </html> 
