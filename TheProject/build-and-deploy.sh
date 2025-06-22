@@ -2,16 +2,22 @@
 
 set -e
 
-echo "Building Docker image for todo-app..."
+echo "Building Docker images..."
 
-# Build the Docker image
+# Build the todo-app image
+echo "Building todo-app..."
 docker build -t todo-app:latest .
 
-echo "Docker image built successfully!"
+# Build the todo-backend image
+echo "Building todo-backend..."
+docker build -t todo-backend:latest ./todo-backend/
 
-# Import the image into k3d cluster
-echo "Importing image into k3d cluster..."
+echo "Docker images built successfully!"
+
+# Import the images into k3d cluster
+echo "Importing images into k3d cluster..."
 k3d image import todo-app:latest
+k3d image import todo-backend:latest
 
 echo "Applying Kubernetes manifests..."
 # Apply PV and PVC first
@@ -35,6 +41,8 @@ for i in {1..12}; do
 done
 
 # Apply the rest of the resources
+kubectl apply -f manifests/todo-backend-deployment.yaml
+kubectl apply -f manifests/todo-backend-service.yaml
 kubectl apply -f manifests/deployment.yaml
 kubectl apply -f manifests/service.yaml
 
@@ -43,6 +51,7 @@ kubectl get pv
 kubectl get pvc
 kubectl get deployments
 kubectl get pods -l app=todo-app
+kubectl get pods -l app=todo-backend
 kubectl get services
 
 echo ""
@@ -50,8 +59,11 @@ echo "Deployment completed!"
 echo "Image caching is enabled with persistent storage!"
 echo ""
 echo "Useful commands:"
-echo "  View logs: kubectl logs -l app=todo-app -f"
-echo "  Check pod status: kubectl get pods -l app=todo-app"
-echo "  Port forward: kubectl port-forward service/todo-app-service 8080:80"
+echo "  View todo-app logs: kubectl logs -l app=todo-app -f"
+echo "  View todo-backend logs: kubectl logs -l app=todo-backend -f"
+echo "  Check pod status: kubectl get pods"
+echo "  Port forward todo-app: kubectl port-forward service/todo-app-service 8080:80"
+echo "  Port forward todo-backend: kubectl port-forward service/todo-backend-service 3001:3001"
 echo "  Test container restart: curl http://localhost:8080/shutdown (after port-forward)"
-echo "  Check persistent volume: kubectl exec -it <pod-name> -- ls -la /app/images/"
+echo "  Check persistent volume: kubectl exec -it <pod-name> -- ls -la /usr/src/app/images/"
+echo "  Test todo-backend directly: curl http://localhost:3001/todos (after port-forward)"

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,6 +17,7 @@ const (
 	imageFileName  = "current.jpg"
 	imageURL       = "https://picsum.photos/1200"
 	cacheDuration  = 10 * time.Minute
+	todoBackendURL = "http://todo-backend-service:3001"
 )
 
 // Todo represents a single todo item
@@ -140,6 +143,52 @@ func getImageAge() string {
 	}
 }
 
+func fetchTodosFromBackend() ([]Todo, error) {
+	resp, err := http.Get(todoBackendURL + "/todos")
+	if err != nil {
+		fmt.Printf("Error fetching todos: %s\n", err)
+		return getHardcodedTodos(), err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: received status code %d when fetching todos\n", resp.StatusCode)
+		return getHardcodedTodos(), fmt.Errorf("backend returned status %d", resp.StatusCode)
+	}
+
+	var todos []Todo
+	if err := json.NewDecoder(resp.Body).Decode(&todos); err != nil {
+		fmt.Printf("Error decoding todos JSON: %s\n", err)
+		return getHardcodedTodos(), err
+	}
+
+	return todos, nil
+}
+
+func createTodoInBackend(text, priority string) error {
+	payload := map[string]string{
+		"text":     text,
+		"priority": priority,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(todoBackendURL+"/todos", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("backend returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func getHardcodedTodos() []Todo {
 	return []Todo{
 		{
@@ -189,6 +238,12 @@ func hello(w http.ResponseWriter, req *http.Request) {
 		userAgent = "Unknown"
 	}
 
+	// Fetch todos from backend service
+	todos, err := fetchTodosFromBackend()
+	if err != nil {
+		fmt.Printf("Using hardcoded todos due to backend error: %s\n", err)
+	}
+
 	// Prepare data for template
 	data := PageData{
 		UserAgent: userAgent,
@@ -196,11 +251,11 @@ func hello(w http.ResponseWriter, req *http.Request) {
 		URL:       req.URL.String(),
 		ImagePath: "/image",
 		ImageAge:  getImageAge(),
-		Todos:     getHardcodedTodos(),
+		Todos:     todos,
 	}
 
 	// Execute template with data
-	err := indexTemplate.Execute(w, data)
+	err = indexTemplate.Execute(w, data)
 	if err != nil {
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		fmt.Printf("Template execution error: %s\n", err)
@@ -234,6 +289,48 @@ func healthCheck(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "OK\n")
 }
 
+// Handle todo creation
+func createTodo(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse form data
+	if err := req.ParseForm(); err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	text := req.FormValue("text")
+	priority := req.FormValue("priority")
+
+	// Validate input
+	if text == "" {
+		http.Error(w, "Text is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(text) > 140 {
+		http.Error(w, "Text must be 140 characters or less", http.StatusBadRequest)
+		return
+	}
+
+	if priority == "" {
+		priority = "medium"
+	}
+
+	// Create todo in backend
+	if err := createTodoInBackend(text, priority); err != nil {
+		fmt.Printf("Error creating todo in backend: %s\n", err)
+		http.Error(w, "Failed to create todo", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to main page
+	http.Redirect(w, req, "/", http.StatusSeeOther)
+}
+
 // Shutdown endpoint for testing container restarts
 func shutdown(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "Shutting down server for testing...\n")
@@ -247,6 +344,7 @@ func shutdown(w http.ResponseWriter, req *http.Request) {
 func main() {
 	http.HandleFunc("/", hello)
 	http.HandleFunc("/image", serveImage)
+	http.HandleFunc("/create-todo", createTodo)
 	http.HandleFunc("/headers", headers)
 	http.HandleFunc("/health", healthCheck)
 	http.HandleFunc("/shutdown", shutdown) // For testing container restarts
