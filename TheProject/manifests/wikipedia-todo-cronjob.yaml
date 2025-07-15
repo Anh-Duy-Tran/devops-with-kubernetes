@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wikipedia-todo-generator
+  namespace: project
+  labels:
+    app: wikipedia-todo-generator
+spec:
+  # Run every hour at minute 0
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: wikipedia-todo-generator
+        spec:
+          containers:
+          - name: wikipedia-todo-generator
+            image: wikipedia-todo-generator:latest
+            imagePullPolicy: Never
+            resources:
+              requests:
+                memory: "32Mi"
+                cpu: "25m"
+              limits:
+                memory: "64Mi"
+                cpu: "50m"
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1 
