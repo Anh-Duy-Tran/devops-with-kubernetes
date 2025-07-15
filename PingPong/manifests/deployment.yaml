@@ -19,6 +19,17 @@ spec:
         - name: pingpong
           image: pingpong:latest
           imagePullPolicy: Never
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-stset-0.postgres-svc.exercises.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: "pingponguser"
+            - name: POSTGRES_PASSWORD
+              value: "pingpongpass"
+            - name: POSTGRES_DB
+              value: "pingpongdb"
           resources:
             requests:
               memory: "32Mi"

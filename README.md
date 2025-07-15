@@ -26,3 +26,4 @@
 - [2.4.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.4/TheProject)
 - [2.5.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.5/LogOutput)
 - [2.6.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.6/TheProject)
+- [2.7.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.7/PingPong)
