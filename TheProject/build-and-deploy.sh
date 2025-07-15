@@ -20,7 +20,12 @@ k3d image import todo-app:latest
 k3d image import todo-backend:latest
 
 echo "Applying Kubernetes manifests..."
-# Apply PV and PVC first
+
+# Apply ConfigMap first
+echo "Applying ConfigMap..."
+kubectl apply -f manifests/configmap.yaml
+
+# Apply PV and PVC
 kubectl apply -f storage
 
 # Check PVC status (kubectl wait for PVC binding is unreliable)
@@ -47,6 +52,7 @@ kubectl apply -f manifests/deployment.yaml
 kubectl apply -f manifests/service.yaml
 
 echo "Checking deployment status..."
+kubectl get configmaps -n project
 kubectl get pv
 kubectl get pvc -n project
 kubectl get deployments -n project
@@ -56,7 +62,14 @@ kubectl get services -n project
 
 echo ""
 echo "Deployment completed!"
+echo "All configurations are now externalized via ConfigMap!"
 echo "Image caching is enabled with persistent storage!"
+echo ""
+echo "Configuration values:"
+echo "  Frontend Port: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.FRONTEND_PORT}')"
+echo "  Backend Port: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.BACKEND_PORT}')"
+echo "  Image URL: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.IMAGE_URL}')"
+echo "  Cache Duration: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.CACHE_DURATION_MINUTES}') minutes"
 echo ""
 echo "Useful commands:"
 echo "  View todo-app logs: kubectl logs -l app=todo-app -n project -f"
@@ -67,3 +80,5 @@ echo "  Port forward todo-backend: kubectl port-forward service/todo-backend-ser
 echo "  Test container restart: curl http://localhost:8080/shutdown (after port-forward)"
 echo "  Check persistent volume: kubectl exec -it <pod-name> -n project -- ls -la /usr/src/app/images/"
 echo "  Test todo-backend directly: curl http://localhost:3001/todos (after port-forward)"
+echo "  View ConfigMap: kubectl get configmap todo-app-config -n project -o yaml"
+echo "  Update config: kubectl edit configmap todo-app-config -n project"

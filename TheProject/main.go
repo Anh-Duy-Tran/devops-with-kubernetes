@@ -9,16 +9,68 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
-const (
-	imageDirectory = "./images"
-	imageFileName  = "current.jpg"
-	imageURL       = "https://picsum.photos/1200"
-	cacheDuration  = 10 * time.Minute
-	todoBackendURL = "http://todo-backend-service:3001"
+// Configuration variables - loaded from environment
+var (
+	imageDirectory string
+	imageFileName  string
+	imageURL       string
+	cacheDuration  time.Duration
+	todoBackendURL string
 )
+
+func init() {
+	// Load configuration from environment variables with defaults
+	imageDirectory = getEnvOrDefault("IMAGE_DIRECTORY", "./images")
+	imageFileName = getEnvOrDefault("IMAGE_FILENAME", "current.jpg")
+	imageURL = getEnvOrDefault("IMAGE_URL", "https://picsum.photos/1200")
+	todoBackendURL = getEnvOrDefault("TODO_BACKEND_URL", "http://todo-backend-service:3001")
+	
+	// Parse cache duration from environment (in minutes)
+	cacheDurationMinutes := getEnvOrDefault("CACHE_DURATION_MINUTES", "10")
+	minutes, err := strconv.Atoi(cacheDurationMinutes)
+	if err != nil {
+		fmt.Printf("Invalid CACHE_DURATION_MINUTES: %s, using default 10 minutes\n", cacheDurationMinutes)
+		minutes = 10
+	}
+	cacheDuration = time.Duration(minutes) * time.Minute
+
+	// Create image directory if it doesn't exist
+	if err := os.MkdirAll(imageDirectory, 0755); err != nil {
+		fmt.Printf("Error creating image directory: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Parse the HTML template at startup
+	var templateErr error
+	indexTemplate, templateErr = template.ParseFiles("index.html")
+	if templateErr != nil {
+		fmt.Printf("Error loading template: %s\n", templateErr)
+		os.Exit(1)
+	}
+
+	// Print configuration on startup
+	fmt.Println("Configuration loaded:")
+	fmt.Printf("  Image Directory: %s\n", imageDirectory)
+	fmt.Printf("  Image Filename: %s\n", imageFileName)
+	fmt.Printf("  Image URL: %s\n", imageURL)
+	fmt.Printf("  Cache Duration: %v\n", cacheDuration)
+	fmt.Printf("  Todo Backend URL: %s\n", todoBackendURL)
+
+	// Start image refresh goroutine
+	go imageRefreshWorker()
+}
+
+// Helper function to get environment variable with default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 // Todo represents a single todo item
 type Todo struct {
@@ -40,25 +92,6 @@ type PageData struct {
 
 // Global variable to hold the parsed template
 var indexTemplate *template.Template
-
-func init() {
-	// Create image directory if it doesn't exist
-	if err := os.MkdirAll(imageDirectory, 0755); err != nil {
-		fmt.Printf("Error creating image directory: %s\n", err)
-		os.Exit(1)
-	}
-
-	// Parse the HTML template at startup
-	var err error
-	indexTemplate, err = template.ParseFiles("index.html")
-	if err != nil {
-		fmt.Printf("Error loading template: %s\n", err)
-		os.Exit(1)
-	}
-
-	// Start image refresh goroutine
-	go imageRefreshWorker()
-}
 
 func imageRefreshWorker() {
 	// Check if we need to fetch a new image on startup
@@ -95,7 +128,7 @@ func refreshImageIfNeeded() {
 func fetchAndSaveImage() {
 	imagePath := filepath.Join(imageDirectory, imageFileName)
 
-	// Fetch image from Lorem Picsum
+	// Fetch image from configured URL
 	resp, err := http.Get(imageURL)
 	if err != nil {
 		fmt.Printf("Error fetching image: %s\n", err)
@@ -350,13 +383,10 @@ func main() {
 	http.HandleFunc("/shutdown", shutdown) // For testing container restarts
 
 	// Retrieve port from environment variable
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port if not specified
-	}
+	port := getEnvOrDefault("PORT", "8080")
 
 	// Start HTTP server
-	fmt.Printf("Server started in port %s\n", port)
+	fmt.Printf("Server started on port %s\n", port)
 	fmt.Printf("Image cache directory: %s\n", imageDirectory)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {

@@ -23,7 +23,40 @@ spec:
             - containerPort: 8080
           env:
             - name: PORT
-              value: "8080"
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: FRONTEND_PORT
+            - name: IMAGE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: IMAGE_URL
+            - name: CACHE_DURATION_MINUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: CACHE_DURATION_MINUTES
+            - name: TODO_BACKEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: TODO_BACKEND_URL
+            - name: IMAGE_DIRECTORY
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: IMAGE_DIRECTORY
+            - name: IMAGE_FILENAME
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: IMAGE_FILENAME
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: LOG_LEVEL
           volumeMounts:
             - name: image-cache
               mountPath: /usr/src/app/images
