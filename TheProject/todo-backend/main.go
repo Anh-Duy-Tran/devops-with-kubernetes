@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -29,6 +28,39 @@ type CreateTodoRequest struct {
 
 var db *sql.DB
 
+// RequestLogger wraps http.Handler to provide comprehensive request logging
+func requestLogger(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		
+		// Log incoming request details
+		log.Printf("REQUEST START: method=%s path=%s remote_addr=%s user_agent=%s", 
+			r.Method, r.URL.Path, r.RemoteAddr, r.Header.Get("User-Agent"))
+		
+		// Create a custom ResponseWriter to capture status code
+		wrappedWriter := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		
+		// Call the actual handler
+		handler(wrappedWriter, r)
+		
+		// Log request completion
+		duration := time.Since(start)
+		log.Printf("REQUEST END: method=%s path=%s status=%d duration=%v remote_addr=%s", 
+			r.Method, r.URL.Path, wrappedWriter.statusCode, duration, r.RemoteAddr)
+	}
+}
+
+// responseWriter wraps http.ResponseWriter to capture the status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
 func main() {
 	// Initialize database connection
 	var err error
@@ -48,20 +80,22 @@ func main() {
 		log.Printf("Warning: Failed to seed initial data: %v", err)
 	}
 
-	// Routes
-	http.HandleFunc("/todos", func(w http.ResponseWriter, r *http.Request) {
+	// Routes with request logging middleware
+	http.HandleFunc("/todos", requestLogger(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET", "OPTIONS":
 			getTodos(w, r)
 		case "POST":
 			createTodo(w, r)
 		default:
+			log.Printf("REJECT: method_not_allowed method=%s path=%s remote_addr=%s", 
+				r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	}))
 
-	http.HandleFunc("/health", healthCheck)
-	http.HandleFunc("/stats", getStats)
+	http.HandleFunc("/health", requestLogger(healthCheck))
+	http.HandleFunc("/stats", requestLogger(getStats))
 
 	// Get port from environment or use default
 	port := getEnvOrDefault("PORT", "3001")
@@ -265,7 +299,7 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(todos)
 
-	log.Printf("GET /todos - Returned %d todos", len(todos))
+	log.Printf("SUCCESS: todos_retrieved count=%d remote_addr=%s", len(todos), r.RemoteAddr)
 }
 
 // POST /todos - Create a new todo
@@ -278,23 +312,32 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method != "POST" {
+		log.Printf("REJECT: invalid_method method=%s path=%s remote_addr=%s", 
+			r.Method, r.URL.Path, r.RemoteAddr)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req CreateTodoRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("REJECT: invalid_json error=%s remote_addr=%s", err.Error(), r.RemoteAddr)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("TODO_REQUEST: text_length=%d priority=%s remote_addr=%s text_preview=%.50s", 
+		len(req.Text), req.Priority, r.RemoteAddr, req.Text)
+
 	// Validate the request
 	if req.Text == "" {
+		log.Printf("REJECT: empty_text remote_addr=%s", r.RemoteAddr)
 		http.Error(w, "Text is required", http.StatusBadRequest)
 		return
 	}
 
 	if len(req.Text) > 140 {
+		log.Printf("REJECT: text_too_long length=%d max=140 remote_addr=%s text_preview=%.50s", 
+			len(req.Text), r.RemoteAddr, req.Text)
 		http.Error(w, "Text must be 140 characters or less", http.StatusBadRequest)
 		return
 	}
@@ -306,6 +349,8 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate priority
 	if req.Priority != "low" && req.Priority != "medium" && req.Priority != "high" {
+		log.Printf("WARN: invalid_priority priority=%s remote_addr=%s, setting to medium", 
+			req.Priority, r.RemoteAddr)
 		req.Priority = "medium"
 	}
 
@@ -318,7 +363,7 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 	).Scan(&newTodo.ID, &newTodo.Text, &createdAt, &newTodo.Priority)
 
 	if err != nil {
-		log.Printf("Error creating todo: %v", err)
+		log.Printf("ERROR: database_insert_failed error=%s remote_addr=%s", err.Error(), r.RemoteAddr)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -329,7 +374,8 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newTodo)
 
-	log.Printf("POST /todos - Created todo: %s (ID: %d)", newTodo.Text, newTodo.ID)
+	log.Printf("SUCCESS: todo_created id=%d text_length=%d priority=%s remote_addr=%s text=%.50s", 
+		newTodo.ID, len(newTodo.Text), newTodo.Priority, r.RemoteAddr, newTodo.Text)
 }
 
 // Health check endpoint
@@ -364,6 +410,6 @@ func getStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
 
-	log.Printf("GET /stats - Current stats: %d todos", totalTodos)
+	log.Printf("SUCCESS: stats_retrieved total_todos=%d remote_addr=%s", totalTodos, r.RemoteAddr)
 }
 

@@ -29,3 +29,4 @@
 - [2.7.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.7/PingPong)
 - [2.8.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.8/TheProject)
 - [2.9.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.9/TheProject)
+- [2.10.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.10/TheProject)
