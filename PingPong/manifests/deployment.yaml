@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pingpong-app
+  namespace: exercises
   labels:
     app: pingpong-app
 spec:
