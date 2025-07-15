@@ -22,6 +22,7 @@ spec:
           ports:
             - containerPort: 3001
           env:
+            # Application configuration from ConfigMap
             - name: PORT
               valueFrom:
                 configMapKeyRef:
@@ -32,6 +33,41 @@ spec:
                 configMapKeyRef:
                   name: todo-app-config
                   key: LOG_LEVEL
+            
+            # Database connection configuration from ConfigMap
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: DB_PORT
+            - name: DB_SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-app-config
+                  key: DB_SSLMODE
+            
+            # Database credentials from Secret
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          
           livenessProbe:
             httpGet:
               path: /health
@@ -43,4 +79,12 @@ spec:
               path: /health
               port: 3001
             initialDelaySeconds: 5
-            periodSeconds: 5 
+            periodSeconds: 5
+          
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m" 

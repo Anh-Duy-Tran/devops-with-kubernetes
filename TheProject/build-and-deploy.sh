@@ -2,6 +2,12 @@
 
 set -e
 
+echo "=== Building and Deploying TheProject with Postgres Database ==="
+
+# Create namespace if it doesn't exist
+echo "Creating namespace..."
+kubectl create namespace project --dry-run=client -o yaml | kubectl apply -f -
+
 echo "Building Docker images..."
 
 # Build the todo-app image
@@ -21,11 +27,26 @@ k3d image import todo-backend:latest
 
 echo "Applying Kubernetes manifests..."
 
-# Apply ConfigMap first
+# Apply Secret and ConfigMap first
+echo "Applying Secret for database credentials..."
+kubectl apply -f manifests/secret.yaml
+
 echo "Applying ConfigMap..."
 kubectl apply -f manifests/configmap.yaml
 
-# Apply PV and PVC
+# Deploy Postgres StatefulSet
+echo "Deploying Postgres StatefulSet..."
+kubectl apply -f manifests/postgres-statefulset.yaml
+
+# Wait for Postgres to be ready
+echo "Waiting for Postgres to be ready..."
+kubectl wait --for=condition=ready pod/postgres-stset-0 -n project --timeout=300s
+
+# Check if Postgres is running
+echo "Checking Postgres status..."
+kubectl get pods -n project -l app=postgres
+
+# Apply PV and PVC for image storage
 kubectl apply -f storage
 
 # Check PVC status (kubectl wait for PVC binding is unreliable)
@@ -45,40 +66,66 @@ for i in {1..12}; do
   fi
 done
 
-# Apply the rest of the resources
+# Deploy the backend (depends on database)
+echo "Deploying todo-backend..."
 kubectl apply -f manifests/todo-backend-deployment.yaml
 kubectl apply -f manifests/todo-backend-service.yaml
+
+# Wait for backend to be ready
+echo "Waiting for todo-backend to be ready..."
+kubectl wait --for=condition=available deployment/todo-backend -n project --timeout=300s
+
+# Deploy the frontend
+echo "Deploying todo-app frontend..."
 kubectl apply -f manifests/deployment.yaml
 kubectl apply -f manifests/service.yaml
 
-echo "Checking deployment status..."
-kubectl get configmaps -n project
-kubectl get pv
-kubectl get pvc -n project
-kubectl get deployments -n project
-kubectl get pods -l app=todo-app -n project
-kubectl get pods -l app=todo-backend -n project
-kubectl get services -n project
+# Wait for frontend to be ready
+echo "Waiting for todo-app to be ready..."
+kubectl wait --for=condition=available deployment/todo-app -n project --timeout=300s
+
+echo "=== Deployment Status ==="
+kubectl get all -n project
 
 echo ""
-echo "Deployment completed!"
-echo "All configurations are now externalized via ConfigMap!"
-echo "Image caching is enabled with persistent storage!"
+echo "=== PersistentVolumeClaims ==="
+kubectl get pvc -n project
+
 echo ""
-echo "Configuration values:"
+echo "=== Secrets and ConfigMaps ==="
+kubectl get secrets,configmaps -n project
+
+echo ""
+echo "=== TheProject with Postgres Database deployed successfully! ==="
+echo ""
+echo "Database Configuration (from Secret):"
+echo "  Database: $(kubectl get secret postgres-secret -n project -o jsonpath='{.data.POSTGRES_DB}' | base64 -d)"
+echo "  User: $(kubectl get secret postgres-secret -n project -o jsonpath='{.data.POSTGRES_USER}' | base64 -d)"
+echo ""
+echo "Application Configuration (from ConfigMap):"
 echo "  Frontend Port: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.FRONTEND_PORT}')"
 echo "  Backend Port: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.BACKEND_PORT}')"
 echo "  Image URL: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.IMAGE_URL}')"
 echo "  Cache Duration: $(kubectl get configmap todo-app-config -n project -o jsonpath='{.data.CACHE_DURATION_MINUTES}') minutes"
 echo ""
-echo "Useful commands:"
+echo "=== Recent Logs ==="
+echo "Todo-backend logs:"
+kubectl logs -l app=todo-backend -n project --tail=5
+
+echo ""
+echo "=== Testing Instructions ==="
+echo "To test the database connection:"
+echo "kubectl run -it --rm --restart=Never --image postgres:15 --namespace=project psql-debug -- psql 'postgres://todouser:todopass123@postgres-stset-0.postgres-svc.project.svc.cluster.local:5432/tododb'"
+
+echo ""
+echo "=== Useful Commands ==="
 echo "  View todo-app logs: kubectl logs -l app=todo-app -n project -f"
 echo "  View todo-backend logs: kubectl logs -l app=todo-backend -n project -f"
+echo "  View postgres logs: kubectl logs -l app=postgres -n project -f"
 echo "  Check pod status: kubectl get pods -n project"
 echo "  Port forward todo-app: kubectl port-forward service/todo-app-service 8080:80 -n project"
 echo "  Port forward todo-backend: kubectl port-forward service/todo-backend-service 3001:3001 -n project"
-echo "  Test container restart: curl http://localhost:8080/shutdown (after port-forward)"
-echo "  Check persistent volume: kubectl exec -it <pod-name> -n project -- ls -la /usr/src/app/images/"
-echo "  Test todo-backend directly: curl http://localhost:3001/todos (after port-forward)"
-echo "  View ConfigMap: kubectl get configmap todo-app-config -n project -o yaml"
-echo "  Update config: kubectl edit configmap todo-app-config -n project"
+echo "  Test todo-backend API: curl http://localhost:3001/todos (after port-forward)"
+echo "  Test stats endpoint: curl http://localhost:3001/stats (after port-forward)"
+echo "  Check database: kubectl exec -it postgres-stset-0 -n project -- psql -U todouser -d tododb -c 'SELECT * FROM todos;'"
+echo "  Monitor database: kubectl exec -it postgres-stset-0 -n project -- psql -U todouser -d tododb -c '\\dt'"

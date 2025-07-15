@@ -15,6 +15,11 @@ data:
   # Backend service configuration
   BACKEND_PORT: "3001"
   
+  # Database configuration
+  DB_HOST: "postgres-stset-0.postgres-svc.project.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_SSLMODE: "disable"
+  
   # Common configuration
   LOG_LEVEL: "info"
   HEALTH_CHECK_PATH: "/health" 
