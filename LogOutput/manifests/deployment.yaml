@@ -19,14 +19,25 @@ spec:
         - name: shared-logs
           persistentVolumeClaim:
             claimName: shared-data-claim
+        - name: config-volume
+          configMap:
+            name: log-output-configmap
       containers:
         - name: log-writer
           image: log-output:latest
           imagePullPolicy: Never
           command: ["/log-output", "writer"]
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-configmap
+                  key: MESSAGE
           volumeMounts:
             - name: shared-logs
               mountPath: /usr/src/app/files
+            - name: config-volume
+              mountPath: /config
           resources:
             requests:
               memory: "32Mi"
@@ -38,9 +49,17 @@ spec:
           image: log-output:latest
           imagePullPolicy: Never
           command: ["/log-output", "reader"]
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-configmap
+                  key: MESSAGE
           volumeMounts:
             - name: shared-logs
               mountPath: /usr/src/app/files
+            - name: config-volume
+              mountPath: /config
           resources:
             requests:
               memory: "32Mi"

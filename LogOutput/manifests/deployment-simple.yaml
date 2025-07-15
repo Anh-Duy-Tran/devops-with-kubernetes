@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-output-simple
+  namespace: exercises
+  labels:
+    app: log-output-simple
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-output-simple
+  template:
+    metadata:
+      labels:
+        app: log-output-simple
+    spec:
+      containers:
+        - name: log-writer
+          image: log-output:latest
+          imagePullPolicy: Never
+          command: ["/log-output", "writer"]
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-configmap
+                  key: MESSAGE
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: log-output-configmap 

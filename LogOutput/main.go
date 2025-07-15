@@ -23,7 +23,25 @@ type Status struct {
 const (
 	logFilePath        = "/tmp/output.log"
 	pingPongServiceURL = "http://pingpong-service:8080/pingpongcount"
+	configFilePath     = "/config/information.txt"
 )
+
+func readConfigFile() string {
+	content, err := os.ReadFile(configFilePath)
+	if err != nil {
+		log.Printf("Error reading config file: %v", err)
+		return "config file not found"
+	}
+	return strings.TrimSpace(string(content))
+}
+
+func getEnvMessage() string {
+	message := os.Getenv("MESSAGE")
+	if message == "" {
+		return "env variable not set"
+	}
+	return message
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -57,7 +75,14 @@ func runWriter() {
 		// Get ping-pong count via HTTP
 		pingPongCount := getPingPongCountHTTP()
 
-		logEntry := fmt.Sprintf("%s: %s.\nPing / Pongs: %d\n", timestamp, randomString, pingPongCount)
+		// Read config file content
+		fileContent := readConfigFile()
+
+		// Read environment variable
+		envMessage := getEnvMessage()
+
+		logEntry := fmt.Sprintf("file content: %s\nenv variable: MESSAGE=%s\n%s: %s.\nPing / Pongs: %d\n", 
+			fileContent, envMessage, timestamp, randomString, pingPongCount)
 
 		// Append to file
 		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -121,15 +146,19 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the log file
 	content, err := os.ReadFile(logFilePath)
 	if err != nil {
-		// If file doesn't exist, return waiting message
+		// If file doesn't exist, return waiting message with config info
 		pingPongCount := getPingPongCountHTTP()
+		fileContent := readConfigFile()
+		envMessage := getEnvMessage()
+		
 		response := Status{
 			Timestamp: time.Now().Format(time.RFC3339),
 			String:    "Waiting for log data...",
 			PingPongs: pingPongCount,
 		}
 		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "%s: %s.\nPing / Pongs: %d", response.Timestamp, response.String, response.PingPongs)
+		fmt.Fprintf(w, "file content: %s\nenv variable: MESSAGE=%s\n%s: %s.\nPing / Pongs: %d", 
+			fileContent, envMessage, response.Timestamp, response.String, response.PingPongs)
 		return
 	}
 
