@@ -1,0 +1,60 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Include all the Kubernetes manifests
+resources:
+  - manifests/deployment.yaml
+  - manifests/service.yaml
+  - manifests/todo-backend-deployment.yaml
+  - manifests/todo-backend-service.yaml
+  - manifests/postgres-statefulset.yaml
+  - manifests/configmap.yaml
+  - manifests/secret.yaml
+  - manifests/ingress.yaml
+  - manifests/wikipedia-todo-cronjob.yaml
+  - storage/persistentvolume.yaml
+
+# Create namespace for the project
+namespace: project
+
+# Manage images with placeholders for CI/CD
+images:
+  - name: PROJECT/TODO-APP
+    newName: gcr.io/dwk-gke-466114/todo-app
+    newTag: v1.0.0
+  - name: PROJECT/TODO-BACKEND
+    newName: gcr.io/dwk-gke-466114/todo-backend
+    newTag: v1.0.0
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/name: todo-project
+  app.kubernetes.io/version: v1.0.0
+  app.kubernetes.io/managed-by: kustomize
+
+# Resource generation options
+generatorOptions:
+  disableNameSuffixHash: true
+
+
+# GKE-specific patches
+patches:
+  # Change main service to LoadBalancer for external access
+  - target:
+      kind: Service
+      name: todo-app-service
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
+
+# GKE-specific patches
+patches:
+  # Change main service to LoadBalancer for external access
+  - target:
+      kind: Service
+      name: todo-app-service
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer

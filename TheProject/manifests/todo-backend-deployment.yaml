@@ -17,8 +17,7 @@ spec:
     spec:
       containers:
         - name: todo-backend
-          image: todo-backend:latest
-          imagePullPolicy: Never
+          image: PROJECT/TODO-BACKEND
           ports:
             - containerPort: 3001
           env:
@@ -33,7 +32,7 @@ spec:
                 configMapKeyRef:
                   name: todo-app-config
                   key: LOG_LEVEL
-            
+
             # Database connection configuration from ConfigMap
             - name: DB_HOST
               valueFrom:
@@ -50,7 +49,7 @@ spec:
                 configMapKeyRef:
                   name: todo-app-config
                   key: DB_SSLMODE
-            
+
             # Database credentials from Secret
             - name: POSTGRES_DB
               valueFrom:
@@ -67,7 +66,7 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
-          
+
           livenessProbe:
             httpGet:
               path: /health
@@ -80,11 +79,12 @@ spec:
               port: 3001
             initialDelaySeconds: 5
             periodSeconds: 5
-          
+
           resources:
             requests:
               memory: "64Mi"
               cpu: "100m"
             limits:
               memory: "128Mi"
-              cpu: "200m" 
+              cpu: "200m"
+
