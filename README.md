@@ -30,3 +30,7 @@
 - [2.8.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.8/TheProject)
 - [2.9.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.9/TheProject)
 - [2.10.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/2.10/TheProject)
+
+### Chapter 3
+
+- [3.1.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.1/GKE)

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pingpong-app
+  labels:
+    app: pingpong-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pingpong-app
+  template:
+    metadata:
+      labels:
+        app: pingpong-app
+    spec:
+      containers:
+        - name: pingpong
+          image: gcr.io/dwk-gke-466114/pingpong:latest
+          imagePullPolicy: Always
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-stset-0.postgres-svc.default.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: "pingponguser"
+            - name: POSTGRES_PASSWORD
+              value: "pingpongpass"
+            - name: POSTGRES_DB
+              value: "pingpongdb"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pingpong-service
+  labels:
+    app: pingpong-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: pingpong-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

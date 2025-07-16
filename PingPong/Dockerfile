@@ -12,7 +12,7 @@ RUN go mod download
 COPY *.go ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /pingpong
+RUN CGO_ENABLED=0 go build -o /pingpong
 
 FROM scratch
 
