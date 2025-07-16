@@ -10,6 +10,12 @@ spec:
         - path:
             type: PathPrefix
             value: /pingpong
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - name: pingpong-service
           port: 80
@@ -29,4 +35,3 @@ spec:
       backendRefs:
         - name: logoutput-service
           port: 80
-

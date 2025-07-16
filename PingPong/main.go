@@ -39,8 +39,8 @@ func main() {
 	defer db.Close()
 
 	// Setup HTTP server
-	http.HandleFunc("/", healthHandler)           // Health check endpoint for Ingress
-	http.HandleFunc("/pingpong", pingPongHandler) // Main ping-pong endpoint
+	http.HandleFunc("/", pingPongHandler)     // Main ping-pong endpoint at root
+	http.HandleFunc("/health", healthHandler) // Health check endpoint
 	http.HandleFunc("/pingpongcount", pingPongCountHandler)
 
 	log.Println("Starting PingPong server on port 8080...")

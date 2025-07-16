@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pingpong
-          image: gcr.io/dwk-gke-466114/pingpong:latest
+          image: gcr.io/dwk-gke-466114/pingpong:v2
           imagePullPolicy: Always
           env:
             - name: POSTGRES_HOST
