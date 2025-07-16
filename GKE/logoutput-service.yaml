@@ -5,11 +5,10 @@ metadata:
   labels:
     app: logoutput-app
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: logoutput-app
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
-

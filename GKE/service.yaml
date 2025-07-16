@@ -5,7 +5,7 @@ metadata:
   labels:
     app: pingpong-app
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: pingpong-app
   ports:
