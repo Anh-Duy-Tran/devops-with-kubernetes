@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY logoutput-simple-linux /log-output
+
+CMD ["/log-output"] 

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logoutput-app
+  labels:
+    app: logoutput-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logoutput-app
+  template:
+    metadata:
+      labels:
+        app: logoutput-app
+    spec:
+      containers:
+        - name: logoutput
+          image: gcr.io/dwk-gke-466114/logoutput:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "25m"
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+

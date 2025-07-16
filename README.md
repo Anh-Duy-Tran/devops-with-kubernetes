@@ -34,3 +34,4 @@
 ### Chapter 3
 
 - [3.1.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.1/GKE)
+- [3.2.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.2/GKE)

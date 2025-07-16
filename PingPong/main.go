@@ -39,8 +39,8 @@ func main() {
 	defer db.Close()
 
 	// Setup HTTP server
-	http.HandleFunc("/", pingPongHandler) // Only root path increments counter
-	http.HandleFunc("/pingpong", redirectToPingPong)
+	http.HandleFunc("/", healthHandler)           // Health check endpoint for Ingress
+	http.HandleFunc("/pingpong", pingPongHandler) // Main ping-pong endpoint
 	http.HandleFunc("/pingpongcount", pingPongCountHandler)
 
 	log.Println("Starting PingPong server on port 8080...")
@@ -140,12 +140,6 @@ func incrementCounter() (int, error) {
 }
 
 func pingPongHandler(w http.ResponseWriter, r *http.Request) {
-	// Only handle exact root path "/"
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
 	// Thread-safe counter increment
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -170,6 +164,12 @@ func pingPongHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Responded with: pong %d", displayCount)
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	// Health check endpoint for Ingress - returns 200 OK
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("OK"))
+}
+
 func pingPongCountHandler(w http.ResponseWriter, r *http.Request) {
 	// Return current counter value without incrementing
 	mutex.Lock()
@@ -187,9 +187,4 @@ func pingPongCountHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(strconv.Itoa(currentCount)))
 
 	log.Printf("Returned count: %d", currentCount)
-}
-
-func redirectToPingPong(w http.ResponseWriter, r *http.Request) {
-	// Redirect /pingpong to root path for consistency
-	http.Redirect(w, r, "/", http.StatusMovedPermanently)
 }

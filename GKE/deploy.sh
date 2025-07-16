@@ -34,4 +34,3 @@ kubectl wait --for=condition=available deployment/pingpong-app --timeout=300s
 echo "Waiting for LoadBalancer to get external IP..."
 echo "This may take a few minutes..."
 kubectl get svc pingpong-service --watch
-

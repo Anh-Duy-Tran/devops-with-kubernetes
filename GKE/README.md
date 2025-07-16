@@ -113,4 +113,3 @@ gcloud container clusters delete dwk-cluster --zone=YOUR_ZONE
 - Compute resources for the cluster nodes
 
 Monitor your GCP billing to stay within your credits!
-

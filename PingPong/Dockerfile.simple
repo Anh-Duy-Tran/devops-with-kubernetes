@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY pingpong-linux /pingpong
+
+CMD ["/pingpong"] 

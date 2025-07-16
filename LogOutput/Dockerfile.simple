@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY logoutput-linux /log-output
+
+CMD ["/log-output", "reader"] 
