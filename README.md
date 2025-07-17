@@ -38,3 +38,4 @@
 - [3.3.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.3/GKE)
 - [3.4.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.4/GKE)
 - [3.5.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.5/TheProject)
+- [3.6.](https://github.com/Anh-Duy-Tran/devops-with-kubernetes/tree/3.6/.github/workflows/main.yaml)

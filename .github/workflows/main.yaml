@@ -1,0 +1,89 @@
+name: Release TheProject Application
+
+on:
+  push:
+    paths:
+      - 'TheProject/**'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repository
+  TODO_APP_IMAGE: todo-app
+  TODO_BACKEND_IMAGE: todo-backend
+  SERVICE: todo-app
+  BRANCH: ${{ github.ref_name }}
+
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 'Use gcloud CLI'
+        run: gcloud info
+
+      - run: gcloud --quiet auth configure-docker $REGISTRY
+
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v2'
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: 'Form the todo-app image name'
+        run: echo "TODO_APP_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_APP_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: 'Form the todo-backend image name'
+        run: echo "TODO_BACKEND_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_BACKEND_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build todo-app
+        run: |
+          cd TheProject
+          docker build --tag $TODO_APP_IMAGE_TAG .
+
+      - name: Build todo-backend
+        run: |
+          cd TheProject/todo-backend
+          docker build --tag $TODO_BACKEND_IMAGE_TAG .
+
+      - name: Publish todo-app
+        run: docker push $TODO_APP_IMAGE_TAG
+
+      - name: Publish todo-backend
+        run: docker push $TODO_BACKEND_IMAGE_TAG
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Deploy
+        run: |-
+          cd TheProject
+          kustomize edit set image PROJECT/TODO-APP=$TODO_APP_IMAGE_TAG
+          kustomize edit set image PROJECT/TODO-BACKEND=$TODO_BACKEND_IMAGE_TAG
+          
+          # Try to apply normally first
+          if ! kustomize build . | kubectl apply -f -; then
+            echo "Normal apply failed, likely due to immutable selector fields. Attempting cleanup and redeploy..."
+            kubectl delete deployment todo-app todo-backend -n project --ignore-not-found=true
+            kubectl delete statefulset postgres-stset -n project --ignore-not-found=true
+            sleep 10
+            kustomize build . | kubectl apply -f -
+          fi
+          
+          kubectl rollout status deployment $SERVICE -n project
+          kubectl get services -o wide -n project 

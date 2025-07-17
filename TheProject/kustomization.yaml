@@ -20,33 +20,21 @@ namespace: project
 # Manage images with placeholders for CI/CD
 images:
   - name: PROJECT/TODO-APP
-    newName: gcr.io/dwk-gke-466114/todo-app
-    newTag: v1.0.0
+    newName: PROJECT/TODO-APP
   - name: PROJECT/TODO-BACKEND
-    newName: gcr.io/dwk-gke-466114/todo-backend
-    newTag: v1.0.0
+    newName: PROJECT/TODO-BACKEND
 
-# Common labels for all resources
-commonLabels:
-  app.kubernetes.io/name: todo-project
-  app.kubernetes.io/version: v1.0.0
-  app.kubernetes.io/managed-by: kustomize
+# Common labels for all resources (metadata only, not selectors)
+labels:
+  - pairs:
+      app.kubernetes.io/name: todo-project
+      app.kubernetes.io/version: v1.0.0
+      app.kubernetes.io/managed-by: kustomize
 
 # Resource generation options
 generatorOptions:
   disableNameSuffixHash: true
 
-
-# GKE-specific patches
-patches:
-  # Change main service to LoadBalancer for external access
-  - target:
-      kind: Service
-      name: todo-app-service
-    patch: |-
-      - op: replace
-        path: /spec/type
-        value: LoadBalancer
 
 # GKE-specific patches
 patches:
