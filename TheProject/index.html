@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello World - Todo App with Hourly Images</title>
+    <title>Hello World Feature - Todo App with Hourly Images</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -18,6 +18,15 @@
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         text-align: center;
+      }
+      .feature-badge {
+        background-color: #ff6b6b;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        margin-bottom: 20px;
+        display: inline-block;
       }
       h1 {
         color: #333;
@@ -185,6 +194,7 @@
   </head>
   <body>
     <div class="container">
+      <div class="feature-badge">🚀 FEATURE-TEST BRANCH</div>
       <h1>🌟 Hello World! 🌟</h1>
       <p>Welcome to the Todo App with Hourly Images running in Kubernetes!</p>
 
@@ -232,9 +242,7 @@
               <span class="char-count" id="charCount">0/140</span>
             </div>
             <div style="margin-top: 10px">
-              <label
-                for="priority"
-                style="font-size: 14px; color: #6c757d"
+              <label for="priority" style="font-size: 14px; color: #6c757d"
                 >Priority:</label
               >
               <select
@@ -310,48 +318,48 @@
         sendButton.disabled = currentLength === 0 || currentLength > 140;
       }
 
-              function handleSendTodo() {
-          const form = document.getElementById("todoForm");
+      function handleSendTodo() {
+        const form = document.getElementById("todoForm");
+        const input = document.getElementById("todoInput");
+        const todoText = input.value.trim();
+
+        if (todoText.length === 0) {
+          alert("Please enter a todo item!");
+          return false;
+        }
+
+        if (todoText.length > 140) {
+          alert("Todo is too long! Maximum 140 characters allowed.");
+          return false;
+        }
+
+        // Submit the form
+        form.submit();
+        return true;
+      }
+
+      // Handle Enter key press
+      document
+        .getElementById("todoInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendTodo();
+          }
+        });
+
+      // Handle form submission
+      document
+        .getElementById("todoForm")
+        .addEventListener("submit", function (e) {
           const input = document.getElementById("todoInput");
           const todoText = input.value.trim();
 
-          if (todoText.length === 0) {
-            alert("Please enter a todo item!");
-            return false;
+          if (todoText.length === 0 || todoText.length > 140) {
+            e.preventDefault();
+            handleSendTodo();
           }
-
-          if (todoText.length > 140) {
-            alert("Todo is too long! Maximum 140 characters allowed.");
-            return false;
-          }
-
-          // Submit the form
-          form.submit();
-          return true;
-        }
-
-              // Handle Enter key press
-        document
-          .getElementById("todoInput")
-          .addEventListener("keypress", function (e) {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSendTodo();
-            }
-          });
-
-        // Handle form submission
-        document
-          .getElementById("todoForm")
-          .addEventListener("submit", function (e) {
-            const input = document.getElementById("todoInput");
-            const todoText = input.value.trim();
-
-            if (todoText.length === 0 || todoText.length > 140) {
-              e.preventDefault();
-              handleSendTodo();
-            }
-          });
+        });
 
       // Initialize character count on page load
       document.addEventListener("DOMContentLoaded", function () {
@@ -360,4 +368,3 @@
     </script>
   </body>
 </html>
-
