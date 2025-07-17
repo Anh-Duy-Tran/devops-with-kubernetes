@@ -12,37 +12,41 @@ resources:
   - manifests/secret.yaml
   - manifests/ingress.yaml
   - manifests/wikipedia-todo-cronjob.yaml
-  - storage/persistentvolume.yaml
 
 # Create namespace for the project
-namespace: project
+namespace: feature-test
 
 # Manage images with placeholders for CI/CD
 images:
   - name: PROJECT/TODO-APP
-    newName: PROJECT/TODO-APP
+    newName: europe-north1-docker.pkg.dev/dwk-gke-466114/my-repository/todo-app
+    newTag: feature-test-bb8e586d3ce19e5f2c4ccc54f1e89feaed3a1288
   - name: PROJECT/TODO-BACKEND
-    newName: PROJECT/TODO-BACKEND
+    newName: europe-north1-docker.pkg.dev/dwk-gke-466114/my-repository/todo-backend
+    newTag: feature-test-bb8e586d3ce19e5f2c4ccc54f1e89feaed3a1288
 
 # Common labels for all resources (metadata only, not selectors)
 labels:
   - pairs:
+      app.kubernetes.io/managed-by: kustomize
       app.kubernetes.io/name: todo-project
       app.kubernetes.io/version: v1.0.0
-      app.kubernetes.io/managed-by: kustomize
 
 # Resource generation options
 generatorOptions:
   disableNameSuffixHash: true
 
-
 # GKE-specific patches
+# Change main service to LoadBalancer for external access
 patches:
-  # Change main service to LoadBalancer for external access
-  - target:
-      kind: Service
-      name: todo-app-service
-    patch: |-
+  - patch: |-
       - op: replace
         path: /spec/type
         value: LoadBalancer
+    target:
+      kind: Service
+      name: todo-app-service
+  - path: feature-storage-patch.yaml
+    target:
+      kind: Deployment
+      name: todo-app

@@ -3,7 +3,7 @@ name: Release TheProject Application
 on:
   push:
     paths:
-      - 'TheProject/**'
+      - "TheProject/**"
   workflow_dispatch:
 
 env:
@@ -26,64 +26,97 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: google-github-actions/auth@v2
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+          credentials_json: "${{ secrets.GKE_SA_KEY }}"
 
-      - name: 'Set up Cloud SDK'
+      - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: 'Use gcloud CLI'
-        run: gcloud info
+      - name: Configure Docker for Artifact Registry
+        run: gcloud --quiet auth configure-docker $REGISTRY
 
-      - run: gcloud --quiet auth configure-docker $REGISTRY
-
-      - name: 'Get GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@v2'
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
         with:
-          cluster_name: '${{ env.GKE_CLUSTER }}'
-          project_id: '${{ env.PROJECT_ID }}'
-          location: '${{ env.GKE_ZONE }}'
+          cluster_name: "${{ env.GKE_CLUSTER }}"
+          project_id: "${{ env.PROJECT_ID }}"
+          location: "${{ env.GKE_ZONE }}"
 
-      - name: 'Form the todo-app image name'
-        run: echo "TODO_APP_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_APP_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
-
-      - name: 'Form the todo-backend image name'
-        run: echo "TODO_BACKEND_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_BACKEND_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
-
-      - name: Build todo-app
+      - name: Generate image tags
         run: |
+          echo "TODO_APP_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_APP_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+          echo "TODO_BACKEND_IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$TODO_BACKEND_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build and publish Docker images
+        run: |
+          # Build todo-app
           cd TheProject
           docker build --tag $TODO_APP_IMAGE_TAG .
+          docker push $TODO_APP_IMAGE_TAG
 
-      - name: Build todo-backend
-        run: |
-          cd TheProject/todo-backend
+          # Build todo-backend
+          cd todo-backend
           docker build --tag $TODO_BACKEND_IMAGE_TAG .
-
-      - name: Publish todo-app
-        run: docker push $TODO_APP_IMAGE_TAG
-
-      - name: Publish todo-backend
-        run: docker push $TODO_BACKEND_IMAGE_TAG
+          docker push $TODO_BACKEND_IMAGE_TAG
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Deploy
-        run: |-
+      - name: Deploy to Kubernetes
+        run: |
           cd TheProject
+
+          # Determine target namespace
+          if [ "$BRANCH" = "main" ]; then
+            NAMESPACE="project"
+          else
+            NAMESPACE="$BRANCH"
+          fi
+
+          echo "🚀 Deploying to namespace: $NAMESPACE"
+
+          # Prepare environment
+          kubectl create namespace $NAMESPACE || true
+          kubectl config set-context --current --namespace=$NAMESPACE
+
+          # Reset to clean state
+          if [ -f kustomization.yaml.backup ]; then
+            cp kustomization.yaml.backup kustomization.yaml
+          fi
+
+          # Configure kustomization for target namespace
+          kustomize edit set namespace $NAMESPACE
           kustomize edit set image PROJECT/TODO-APP=$TODO_APP_IMAGE_TAG
           kustomize edit set image PROJECT/TODO-BACKEND=$TODO_BACKEND_IMAGE_TAG
-          
-          # Try to apply normally first
-          if ! kustomize build . | kubectl apply -f -; then
-            echo "Normal apply failed, likely due to immutable selector fields. Attempting cleanup and redeploy..."
-            kubectl delete deployment todo-app todo-backend -n project --ignore-not-found=true
-            kubectl delete statefulset postgres-stset -n project --ignore-not-found=true
-            sleep 10
-            kustomize build . | kubectl apply -f -
+
+          # Configure feature branch storage (emptyDir for isolation)
+          if [ "$BRANCH" != "main" ]; then
+            echo "📝 Configuring ephemeral storage for feature branch..."
+            
+            # Remove persistent storage (conflicts across namespaces)
+            kustomize edit remove resource storage/persistentvolume.yaml
+            
+            # Create emptyDir patch for feature testing
+            cat > feature-storage-patch.yaml << 'EOF'
+          - op: replace
+            path: /spec/template/spec/volumes/0
+            value:
+              name: image-cache
+              emptyDir: {}
+          EOF
+            kustomize edit add patch --path feature-storage-patch.yaml --kind Deployment --name todo-app
           fi
-          
-          kubectl rollout status deployment $SERVICE -n project
-          kubectl get services -o wide -n project 
+
+          # Deploy to cluster
+          echo "📦 Applying manifests..."
+          kustomize build . | kubectl apply -f -
+
+          # Wait for deployment and show status
+          echo "⏳ Waiting for deployment to complete..."
+          kubectl rollout status deployment $SERVICE -n $NAMESPACE --timeout=300s
+
+          echo "✅ Deployment complete! Services:"
+          kubectl get services -o wide -n $NAMESPACE
+

@@ -8,6 +8,7 @@ The project now includes automatic deployment using GitHub Actions that:
 1. Builds Docker images for both the main todo-app and todo-backend
 2. Pushes images to Google Artifact Registry
 3. Deploys to GKE using Kustomize
+4. **Creates separate environments for each branch**
 
 ## Components
 
@@ -42,6 +43,40 @@ You need to configure the following secrets in your GitHub repository:
 ### Deployment Strategy
 
 The main todo-app deployment uses `Recreate` strategy instead of the default `RollingUpdate` to handle the `ReadWriteOnce` Persistent Volume properly. This ensures the old pod is terminated before the new pod starts, preventing volume mounting conflicts.
+
+## Branch-Specific Environments
+
+The deployment pipeline automatically creates separate environments for each branch:
+
+### Namespace Strategy
+- **Main branch** (`main`) → Deployed to `project` namespace
+- **Feature branches** → Deployed to namespace matching branch name (e.g., `feature-x` → `feature-x` namespace)
+
+### How It Works
+1. **Namespace Detection**: Pipeline determines target namespace based on branch name
+2. **Namespace Creation**: Automatically creates namespace if it doesn't exist
+3. **Isolated Deployment**: Each branch gets its own:
+   - Pods and services
+   - ConfigMaps and secrets  
+   - Persistent volumes
+   - Ingress rules
+
+### Testing Feature Branches
+To test this feature:
+1. Create a new branch: `git checkout -b feature-test`
+2. Make changes to your application
+3. Push the branch: `git push origin feature-test`
+4. Pipeline will automatically deploy to `feature-test` namespace
+
+### Accessing Branch Environments
+- **Main**: http://35.228.86.161/ (LoadBalancer service)
+- **Feature branches**: Use `kubectl port-forward` or configure separate ingress
+
+### Cleanup
+To remove a feature branch environment:
+```bash
+kubectl delete namespace <branch-name>
+```
 
 ## Prerequisites
 
